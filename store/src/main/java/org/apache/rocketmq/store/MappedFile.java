@@ -56,14 +56,19 @@ public class MappedFile extends ReferenceResource {
     protected FileChannel fileChannel;
     /**
      * Message will put to here first, and then reput to FileChannel if writeBuffer is not null.
+     * writeBuffer如果writeBuffer不为空，数据先放到writeBuffer中，再放到mappedByteBuffer中。
      */
     protected ByteBuffer writeBuffer = null;
+    //堆内存池
     protected TransientStorePool transientStorePool = null;
     private String fileName;
-    private long fileFromOffset;
+    private long fileFromOffset;//文件的初始偏移量，文件名称
     private File file;
+    //堆外内存
     private MappedByteBuffer mappedByteBuffer;
+    //文件最后一次写入时间
     private volatile long storeTimestamp = 0;
+    //是否是MappedFileQueue队列的第一个文件
     private boolean firstCreateInQueue = false;
 
     public MappedFile() {
@@ -297,6 +302,8 @@ public class MappedFile extends ReferenceResource {
     }
 
     public int commit(final int commitLeastPages) {
+        //当isTransientStorePoolEnable()==false,writeBuffer为空，仅仅通过 mappedByteBuffer 控制，
+        //mappedByteBuffer不需要java代码写到磁盘文件，os会自动写到磁盘。
         if (writeBuffer == null) {
             //no need to commit data to file channel, so just regard wrotePosition as committedPosition.
             return this.wrotePosition.get();
@@ -475,6 +482,7 @@ public class MappedFile extends ReferenceResource {
 
     /**
      * @return The max position which have valid data
+     * 获取最大读指针
      */
     public int getReadPosition() {
         return this.writeBuffer == null ? this.wrotePosition.get() : this.committedPosition.get();
