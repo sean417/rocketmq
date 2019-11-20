@@ -401,6 +401,7 @@ public class MappedFile extends ReferenceResource {
         return null;
     }
 
+    //返回指定从pos到可读偏移量的byteBuffer
     public SelectMappedBufferResult selectMappedBuffer(int pos) {
         int readPosition = getReadPosition();
         if (pos < readPosition && pos >= 0) {
