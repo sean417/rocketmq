@@ -24,6 +24,9 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 
+/*
+   根据topic,queueId 存储消息的索引，用于消费者消费
+ */
 public class ConsumeQueue {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
@@ -151,6 +154,11 @@ public class ConsumeQueue {
         }
     }
 
+    /*
+       通过时间戳根据conusumeQueue找到偏移量，再通过偏移量从CommitLog找到消息的存储时间，从而找到消息。
+       注意timestamp不一定是存在的时间戳，如果不存在就返回一个近似的。
+       用到了二分查找法。
+     */
     public long getOffsetInQueueByTime(final long timestamp) {
         MappedFile mappedFile = this.mappedFileQueue.getMappedFileByTime(timestamp);
         if (mappedFile != null) {

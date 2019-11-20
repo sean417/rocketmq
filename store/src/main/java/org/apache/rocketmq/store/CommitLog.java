@@ -41,6 +41,8 @@ import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 
 /**
  * Store all metadata downtime for recovery, data protection reliability
+ * 存储消息的类
+ *
  */
 public class CommitLog {
     // Message's MAGIC CODE daa320a7
@@ -819,6 +821,12 @@ public class CommitLog {
         return -1;
     }
 
+    /*
+        根据全局offset消息
+       1.根据offset找到 mappedFile。
+       2.根据全局offset找到所在mappedFile的pos。
+       3.根据所在mappedFile的pos和size取得 这条消息的 byteBuffer。
+     */
     public SelectMappedBufferResult getMessage(final long offset, final int size) {
         int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog();
         MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, offset == 0);
