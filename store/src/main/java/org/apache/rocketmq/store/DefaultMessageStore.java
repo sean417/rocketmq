@@ -172,7 +172,7 @@ public class DefaultMessageStore implements MessageStore {
             boolean lastExitOK = !this.isTempFileExist();
             log.info("last shutdown {}", lastExitOK ? "normally" : "abnormally");
 
-            if (null != scheduleMessageService) {
+            if (null != scheduleMessageService) {//加载延迟队列
                 result = result && this.scheduleMessageService.load();
             }
 
@@ -185,7 +185,7 @@ public class DefaultMessageStore implements MessageStore {
             if (result) {
                 this.storeCheckpoint =
                     new StoreCheckpoint(StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
-
+                //加载索引文件
                 this.indexService.load(lastExitOK);
 
                 this.recover(lastExitOK);
@@ -1279,8 +1279,10 @@ public class DefaultMessageStore implements MessageStore {
         long maxPhyOffsetOfConsumeQueue = this.recoverConsumeQueue();
 
         if (lastExitOK) {
+            //正常停止恢复模式
             this.commitLog.recoverNormally(maxPhyOffsetOfConsumeQueue);
         } else {
+            //异常停止恢复模式
             this.commitLog.recoverAbnormally(maxPhyOffsetOfConsumeQueue);
         }
 
@@ -1319,7 +1321,7 @@ public class DefaultMessageStore implements MessageStore {
 
         return maxPhysicOffset;
     }
-
+    //把相关consumequeue的信息同步到commitLog中。
     private void recoverTopicQueueTable() {
         HashMap<String/* topic-queueid */, Long/* offset */> table = new HashMap<String, Long>(1024);
         long minPhyOffset = this.commitLog.getMinOffset();
@@ -1761,12 +1763,13 @@ public class DefaultMessageStore implements MessageStore {
                         this.reputFromOffset = result.getStartOffset();
 
                         for (int readSize = 0; readSize < result.getSize() && doNext; ) {
+                            //取byteBuffer第一条msg的各个属性
                             DispatchRequest dispatchRequest =
                                 DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(result.getByteBuffer(), false, false);
                             int size = dispatchRequest.getMsgSize();
-
                             if (dispatchRequest.isSuccess()) {
                                 if (size > 0) {
+                                    //调用两个dispatch,一个是同步messageQueue的，一个是同步index的。
                                     DefaultMessageStore.this.doDispatch(dispatchRequest);
 
                                     if (BrokerRole.SLAVE != DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole()

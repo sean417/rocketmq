@@ -18,7 +18,8 @@ package org.apache.rocketmq.store;
 
 import java.util.Map;
 
-public class DispatchRequest {
+public class
+DispatchRequest {
     private final String topic;
     private final int queueId;
     private final long commitLogOffset;

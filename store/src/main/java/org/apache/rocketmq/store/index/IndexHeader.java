@@ -33,7 +33,9 @@ public class IndexHeader {
     private final ByteBuffer byteBuffer;
     private AtomicLong beginTimestamp = new AtomicLong(0);
     private AtomicLong endTimestamp = new AtomicLong(0);
+    //索引文件中，被索引的消息的最小偏移量。用来以后做判断
     private AtomicLong beginPhyOffset = new AtomicLong(0);
+    //索引文件中，被索引的消息的最大偏移量。用来以后做判断
     private AtomicLong endPhyOffset = new AtomicLong(0);
     private AtomicInteger hashSlotCount = new AtomicInteger(0);
 

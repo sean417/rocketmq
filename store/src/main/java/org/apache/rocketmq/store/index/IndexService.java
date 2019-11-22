@@ -66,6 +66,7 @@ public class IndexService {
                     f.load();
 
                     if (!lastExitOK) {
+                        //索引文件最大消息时间大于刷盘点时间，则删除此索引文件。
                         if (f.getEndTimestamp() > this.defaultMessageStore.getStoreCheckpoint()
                             .getIndexMsgTimestamp()) {
                             f.destroy(0);

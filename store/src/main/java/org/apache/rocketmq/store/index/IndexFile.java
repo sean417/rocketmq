@@ -126,11 +126,13 @@ public class IndexFile {
                     IndexHeader.INDEX_HEADER_SIZE + this.hashSlotNum * hashSlotSize
                         + this.indexHeader.getIndexCount() * indexSize;
 
-                this.mappedByteBuffer.putInt(absIndexPos, keyHash);
+                this.mappedByteBuffer.putInt(absIndexPos, keyHash);//为了定长结构，所以存keyHash而不是key
                 this.mappedByteBuffer.putLong(absIndexPos + 4, phyOffset);
                 this.mappedByteBuffer.putInt(absIndexPos + 4 + 8, (int) timeDiff);
                 this.mappedByteBuffer.putInt(absIndexPos + 4 + 8 + 4, slotValue);
+                //存储hashcode对应槽位的上一个条目索引。这样也就解决了hash碰撞的问题。因为形成了链表,根据获取的时候就可以按链表挨个判断了。
 
+                //每个 hash槽位 存储的是落在该hash槽的hashcode最新的Index的索引，覆盖原先hash槽的值。
                 this.mappedByteBuffer.putInt(absSlotPos, this.indexHeader.getIndexCount());
 
                 if (this.indexHeader.getIndexCount() <= 1) {
@@ -238,7 +240,7 @@ public class IndexFile {
                         boolean timeMatched = (timeRead >= begin) && (timeRead <= end);
 
                         if (keyHash == keyHashRead && timeMatched) {
-                            phyOffsets.add(phyOffsetRead);
+                            phyOffsets.add(phyOffsetRead);//由于不同的key,hash可能是一样的所以是一个集合，
                         }
 
                         if (prevIndexRead <= invalidIndex
