@@ -69,7 +69,7 @@ public class CommitLog {
         this.mappedFileQueue = new MappedFileQueue(defaultMessageStore.getMessageStoreConfig().getStorePathCommitLog(),
             defaultMessageStore.getMessageStoreConfig().getMapedFileSizeCommitLog(), defaultMessageStore.getAllocateMappedFileService());
         this.defaultMessageStore = defaultMessageStore;
-
+        //不同的刷盘模式对应不同的处理线程去刷盘
         if (FlushDiskType.SYNC_FLUSH == defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
             this.flushCommitLogService = new GroupCommitService();
         } else {
@@ -937,7 +937,7 @@ public class CommitLog {
                     boolean result = CommitLog.this.mappedFileQueue.commit(commitDataLeastPages);
                     long end = System.currentTimeMillis();
                     if (!result) {
-                        this.lastCommitTimestamp = end; // result = false means some data committed.
+                        this.lastCommitTimestamp = end; // result = false means some data committed.result = false
                         //now wake up flush thread.
                         flushCommitLogService.wakeup();
                     }
@@ -972,7 +972,7 @@ public class CommitLog {
 
                 int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushIntervalCommitLog();
                 int flushPhysicQueueLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogLeastPages();
-
+                //两次真实刷写任务最大间隔，默认10s
                 int flushPhysicQueueThoroughInterval =
                     CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogThoroughInterval();
 
@@ -980,13 +980,14 @@ public class CommitLog {
 
                 // Print flush progress
                 long currentTimeMillis = System.currentTimeMillis();
+                //大于flushPhysicQueueThoroughInterval时也要刷盘，即使小于指定页数。
                 if (currentTimeMillis >= (this.lastFlushTimestamp + flushPhysicQueueThoroughInterval)) {
                     this.lastFlushTimestamp = currentTimeMillis;
                     flushPhysicQueueLeastPages = 0;
                     printFlushProgress = (printTimes++ % 10) == 0;
                 }
 
-                try {
+                try {//刷盘前先等待指定间隔时间，然后执行刷盘任务
                     if (flushCommitLogTimed) {
                         Thread.sleep(interval);
                     } else {
@@ -998,8 +999,10 @@ public class CommitLog {
                     }
 
                     long begin = System.currentTimeMillis();
+                    //真正的刷盘
                     CommitLog.this.mappedFileQueue.flush(flushPhysicQueueLeastPages);
                     long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
+                    //更新检查单的时间戳
                     if (storeTimestamp > 0) {
                         CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
                     }

@@ -447,8 +447,8 @@ public class MappedFileQueue {
         if (mappedFile != null) {
             int offset = mappedFile.commit(commitLeastPages);
             long where = mappedFile.getFileFromOffset() + offset;
-            result = where == this.committedWhere;
-            this.committedWhere = where;
+            result = where == this.committedWhere;//不相等说明有新提交的数据
+            this.committedWhere = where;//更新提交位置
         }
 
         return result;
