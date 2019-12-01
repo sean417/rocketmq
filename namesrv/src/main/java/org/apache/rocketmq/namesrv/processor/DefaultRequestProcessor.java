@@ -295,7 +295,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             topicConfigWrapper.getDataVersion().setCounter(new AtomicLong(0));
             topicConfigWrapper.getDataVersion().setTimestamp(0);
         }
-
+        //注册broker
         RegisterBrokerResult result = this.namesrvController.getRouteInfoManager().registerBroker(
             requestHeader.getClusterName(),
             requestHeader.getBrokerAddr(),

@@ -110,7 +110,7 @@ public class BrokerOuterAPI {
 
         this.remotingClient.updateNameServerAddressList(lst);
     }
-
+    //向每一个nameNode发送心跳包
     public List<RegisterBrokerResult> registerBrokerAll(
         final String clusterName,
         final String brokerAddr,
@@ -118,7 +118,7 @@ public class BrokerOuterAPI {
         final long brokerId,
         final String haServerAddr,
         final TopicConfigSerializeWrapper topicConfigWrapper,
-        final List<String> filterServerList,
+        final List<String> filterServerList,//消息过滤服务器列表
         final boolean oneway,
         final int timeoutMills,
         final boolean compressed) {
@@ -171,6 +171,7 @@ public class BrokerOuterAPI {
         return registerBrokerResultList;
     }
 
+    //具体向某一个nameNode发送心跳包
     private RegisterBrokerResult registerBroker(
         final String namesrvAddr,
         final boolean oneway,

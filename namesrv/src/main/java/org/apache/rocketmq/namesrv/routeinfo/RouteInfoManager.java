@@ -56,10 +56,15 @@ public class RouteInfoManager {
     private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
     public RouteInfoManager() {
+        //消息队列路由信息，用于topic路由和负载均衡
         this.topicQueueTable = new HashMap<String, List<QueueData>>(1024);
+        //Broker基础信息，包括brokerName，所属集群，主备Broker
         this.brokerAddrTable = new HashMap<String, BrokerData>(128);
+        //Broker集群信息。
         this.clusterAddrTable = new HashMap<String, Set<String>>(32);
+        //Broker状态信息。NameServer每次收到心跳包时会更新状态
         this.brokerLiveTable = new HashMap<String, BrokerLiveInfo>(256);
+        //Broker上的FilterServer列表，用于类模式消息过滤。
         this.filterServerTable = new HashMap<String, List<String>>(256);
     }
 
@@ -114,6 +119,7 @@ public class RouteInfoManager {
                 this.lock.writeLock().lockInterruptibly();
 
                 Set<String> brokerNames = this.clusterAddrTable.get(clusterName);
+                //集群不存在，创建集群
                 if (null == brokerNames) {
                     brokerNames = new HashSet<String>();
                     this.clusterAddrTable.put(clusterName, brokerNames);
@@ -128,9 +134,10 @@ public class RouteInfoManager {
                     brokerData = new BrokerData(clusterName, brokerName, new HashMap<Long, String>());
                     this.brokerAddrTable.put(brokerName, brokerData);
                 }
+                //放入broker的ip，0为master,1为slave。
                 String oldAddr = brokerData.getBrokerAddrs().put(brokerId, brokerAddr);
                 registerFirst = registerFirst || (null == oldAddr);
-
+                //broker是master而且broker版本发生变化才会更新QueueData
                 if (null != topicConfigWrapper
                     && MixAll.MASTER_ID == brokerId) {
                     if (this.isBrokerTopicConfigChanged(brokerAddr, topicConfigWrapper.getDataVersion())
@@ -182,7 +189,7 @@ public class RouteInfoManager {
 
         return result;
     }
-
+    //比对注册信息的版本号来判断是否改变了
     public boolean isBrokerTopicConfigChanged(final String brokerAddr, final DataVersion dataVersion) {
         DataVersion prev = queryBrokerTopicConfig(brokerAddr);
         return null == prev || !prev.equals(dataVersion);
@@ -210,7 +217,7 @@ public class RouteInfoManager {
         queueData.setReadQueueNums(topicConfig.getReadQueueNums());
         queueData.setPerm(topicConfig.getPerm());
         queueData.setTopicSynFlag(topicConfig.getTopicSysFlag());
-
+        //根据topic name查找topic在哪些broker,以及这些broker针对这个topic的queue存储的元数据。
         List<QueueData> queueDataList = this.topicQueueTable.get(topicConfig.getTopicName());
         if (null == queueDataList) {
             queueDataList = new LinkedList<QueueData>();
@@ -227,6 +234,7 @@ public class RouteInfoManager {
                     if (qd.equals(queueData)) {
                         addNewOne = false;
                     } else {
+                        // broker name 相同但是topic元数据不同，这样要把旧的queueData删掉
                         log.info("topic changed, {} OLD: {} NEW: {}", topicConfig.getTopicName(), qd,
                             queueData);
                         it.remove();
@@ -415,6 +423,7 @@ public class RouteInfoManager {
         return null;
     }
 
+    //定时扫描broker是否活跃
     public void scanNotActiveBroker() {
         Iterator<Entry<String, BrokerLiveInfo>> it = this.brokerLiveTable.entrySet().iterator();
         while (it.hasNext()) {
@@ -429,6 +438,7 @@ public class RouteInfoManager {
         }
     }
 
+    //删除与该broker相关的路由信息。
     public void onChannelDestroy(String remoteAddr, Channel channel) {
         String brokerAddrFound = null;
         if (channel != null) {
@@ -742,7 +752,7 @@ public class RouteInfoManager {
 }
 
 class BrokerLiveInfo {
-    private long lastUpdateTimestamp;
+    private long lastUpdateTimestamp;//最后一次broker上报的心跳包的时间戳
     private DataVersion dataVersion;
     private Channel channel;
     private String haServerAddr;
