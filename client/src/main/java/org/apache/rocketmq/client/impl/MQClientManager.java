@@ -44,6 +44,10 @@ public class MQClientManager {
         return getAndCreateMQClientInstance(clientConfig, null);
     }
 
+    /*
+      整个进程只有一个 MQClientManager 实例，维护一个MQClientInstance缓存表ConcurrentMap<String clientId  MQClientInstance>;
+
+     */
     public MQClientInstance getAndCreateMQClientInstance(final ClientConfig clientConfig, RPCHook rpcHook) {
         String clientId = clientConfig.buildMQClientId();
         MQClientInstance instance = this.factoryTable.get(clientId);
