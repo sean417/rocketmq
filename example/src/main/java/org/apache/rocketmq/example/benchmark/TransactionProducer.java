@@ -91,11 +91,13 @@ public class TransactionProducer {
                 }
             }
         }, 10000, 10000);
-
+        //当RocketMQ发现`Prepared消息`时，会根据这个Listener实现的策略来决断事务
         final TransactionCheckListener transactionCheckListener =
             new TransactionCheckListenerBImpl(ischeckffalse, statsBenchmark);
+        //构造事务消息的生产者
         final TransactionMQProducer producer = new TransactionMQProducer("benchmark_transaction_producer");
         producer.setInstanceName(Long.toString(System.currentTimeMillis()));
+        // 设置事务决断处理类,用来服务端调用回查的。
         producer.setTransactionCheckListener(transactionCheckListener);
         producer.setDefaultTopicQueueNums(1000);
         producer.start();
@@ -110,6 +112,7 @@ public class TransactionProducer {
                         try {
                             // Thread.sleep(1000);
                             final long beginTimestamp = System.currentTimeMillis();
+                            //发送消息
                             SendResult sendResult =
                                 producer.sendMessageInTransaction(msg, tranExecuter, null);
                             if (sendResult != null) {

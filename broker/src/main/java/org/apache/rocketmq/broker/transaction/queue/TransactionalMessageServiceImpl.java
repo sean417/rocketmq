@@ -80,6 +80,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
     }
 
     private boolean needSkip(MessageExt msgExt) {
+        //72小时过期
         long valueOfCurrentMinusBorn = System.currentTimeMillis() - msgExt.getBornTimestamp();
         if (valueOfCurrentMinusBorn
             > transactionalMessageBridge.getBrokerController().getMessageStoreConfig().getFileReservedTime()
@@ -179,7 +180,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                                 continue;
                             }
                         }
-
+                        //检查是否超过check次数并检查是否需要跳过。
                         if (needDiscard(msgExt, transactionCheckMax) || needSkip(msgExt)) {
                             listener.resolveDiscardMsg(msgExt);
                             newOffset = i + 1;
@@ -193,10 +194,13 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                         }
 
                         long valueOfCurrentMinusBorn = System.currentTimeMillis() - msgExt.getBornTimestamp();
+                        //不应过快回查，因为回查时间还没到，因为在等待客户端主动提交结果。
                         long checkImmunityTime = transactionTimeout;
                         String checkImmunityTimeStr = msgExt.getUserProperty(MessageConst.PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS);
                         if (null != checkImmunityTimeStr) {
+                            //如果指定了回查最早时间，就判断下如果时间不到就下一个
                             checkImmunityTime = getImmunityTime(checkImmunityTimeStr, transactionTimeout);
+                            //
                             if (valueOfCurrentMinusBorn < checkImmunityTime) {
                                 if (checkPrepareQueueOffset(removeMap, doneOpOffset, msgExt)) {
                                     newOffset = i + 1;
@@ -204,7 +208,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                                     continue;
                                 }
                             }
-                        } else {
+                        } else {//时间未过跳出本处理
                             if ((0 <= valueOfCurrentMinusBorn) && (valueOfCurrentMinusBorn < checkImmunityTime)) {
                                 log.info("New arrived, the miss offset={}, check it later checkImmunity={}, born={}", i,
                                     checkImmunityTime, new Date(msgExt.getBornTimestamp()));
@@ -212,14 +216,17 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                             }
                         }
                         List<MessageExt> opMsg = pullResult.getMsgFoundList();
+                        //如果
                         boolean isNeedCheck = (opMsg == null && valueOfCurrentMinusBorn > checkImmunityTime)
                             || (opMsg != null && (opMsg.get(opMsg.size() - 1).getBornTimestamp() - startTime > transactionTimeout))
                             || (valueOfCurrentMinusBorn <= -1);
 
                         if (isNeedCheck) {
+                            //先放回去
                             if (!putBackHalfMsgQueue(msgExt, i)) {
                                 continue;
                             }
+                            //异步回查
                             listener.resolveHalfMsg(msgExt);
                         } else {
                             pullResult = fillOpRemoveMap(removeMap, opQueue, pullResult.getNextBeginOffset(), halfOffset, doneOpOffset);
