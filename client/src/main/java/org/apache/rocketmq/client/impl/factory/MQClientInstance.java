@@ -159,6 +159,7 @@ public class MQClientInstance {
     public static TopicPublishInfo topicRouteData2TopicPublishInfo(final String topic, final TopicRouteData route) {
         TopicPublishInfo info = new TopicPublishInfo();
         info.setTopicRouteData(route);
+        //是否是顺序topic
         if (route.getOrderTopicConf() != null && route.getOrderTopicConf().length() > 0) {
             String[] brokers = route.getOrderTopicConf().split(";");
             for (String broker : brokers) {
@@ -169,12 +170,13 @@ public class MQClientInstance {
                     info.getMessageQueueList().add(mq);
                 }
             }
-
+            //设置为顺序topic
             info.setOrderTopic(true);
-        } else {
+        } else {//根据topicRouteData中的List<QueueData>转换成topicPublishInfo的List<MessageQueue>列表
             List<QueueData> qds = route.getQueueDatas();
             Collections.sort(qds);
             for (QueueData qd : qds) {
+                //是否有写权限
                 if (PermName.isWriteable(qd.getPerm())) {
                     BrokerData brokerData = null;
                     for (BrokerData bd : route.getBrokerDatas()) {
@@ -615,7 +617,7 @@ public class MQClientInstance {
 
                         if (changed) {
                             TopicRouteData cloneTopicRouteData = topicRouteData.cloneTopicRouteData();
-
+                            //update broker info
                             for (BrokerData bd : topicRouteData.getBrokerDatas()) {
                                 this.brokerAddrTable.put(bd.getBrokerName(), bd.getBrokerAddrs());
                             }

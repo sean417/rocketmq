@@ -161,6 +161,9 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
 
     protected RemotingCommand msgCheck(final ChannelHandlerContext ctx,
         final SendMessageRequestHeader requestHeader, final RemotingCommand response) {
+
+
+        //1.检查该broker是否有写权限
         if (!PermName.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission())
             && this.brokerController.getTopicConfigManager().isOrderTopic(requestHeader.getTopic())) {
             response.setCode(ResponseCode.NO_PERMISSION);
@@ -168,6 +171,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                 + "] sending message is forbidden");
             return response;
         }
+        //2.是否和默认主题冲突，冲突不能发送。
         if (!this.brokerController.getTopicConfigManager().isTopicCanSendMessage(requestHeader.getTopic())) {
             String errorMsg = "the topic[" + requestHeader.getTopic() + "] is conflict with system reserved words.";
             log.warn(errorMsg);
@@ -175,7 +179,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
             response.setRemark(errorMsg);
             return response;
         }
-
+        //3.在NameServer端存储主题的配置信息。
         TopicConfig topicConfig =
             this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
         if (null == topicConfig) {
@@ -211,7 +215,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                 return response;
             }
         }
-
+        //4.检查队列，队列不合法，返回错误码。
         int queueIdInt = requestHeader.getQueueId();
         int idValid = Math.max(topicConfig.getWriteQueueNums(), topicConfig.getReadQueueNums());
         if (queueIdInt >= idValid) {

@@ -24,9 +24,9 @@ import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 
 public class TopicPublishInfo {
-    private boolean orderTopic = false;
+    private boolean orderTopic = false;//是否是顺序消息
     private boolean haveTopicRouterInfo = false;
-    private List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>();
+    private List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>();//该主题队列的消息队列
     private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex();
     private TopicRouteData topicRouteData;
 
@@ -65,9 +65,10 @@ public class TopicPublishInfo {
     public void setHaveTopicRouterInfo(boolean haveTopicRouterInfo) {
         this.haveTopicRouterInfo = haveTopicRouterInfo;
     }
-
+    //lastBrokerName是上一次选择的执行发送消息失败的broker。
     public MessageQueue selectOneMessageQueue(final String lastBrokerName) {
         if (lastBrokerName == null) {
+            //自增取模获取queue
             return selectOneMessageQueue();
         } else {
             int index = this.sendWhichQueue.getAndIncrement();

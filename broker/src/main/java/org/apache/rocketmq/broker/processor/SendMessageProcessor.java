@@ -315,6 +315,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         }
 
         response.setCode(-1);
+        //检查消息合法性
         super.msgCheck(ctx, requestHeader, response);
         if (response.getCode() != -1) {
             return response;
@@ -359,6 +360,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             //事务prepare消息流程
             putMessageResult = this.brokerController.getTransactionalMessageService().prepareMessage(msgInner);
         } else {
+            //真正的存储消息
             putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
         }
 
